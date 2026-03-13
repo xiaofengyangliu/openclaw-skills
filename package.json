@@ -1,0 +1,22 @@
+{
+  "name": "openclaw-skills-collection",
+  "version": "1.0.0",
+  "description": "个人开发的Openclaw技能集合 / Personal Openclaw Skills Collection",
+  "main": "index.js",
+  "scripts": {
+    "install-all": "find . -name 'package.json' -not -path '*/node_modules/*' -not -path './package.json' -execdir npm install \\;",
+    "validate": "node scripts/validate.js"
+  },
+  "keywords": [
+    "openclaw",
+    "claude-code",
+    "skills",
+    "ai-agents"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/你的用户名/openclaw-skills.git"
+  }
+}
