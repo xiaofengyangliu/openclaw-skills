@@ -36,7 +36,7 @@ module.exports = {
       default: 'false'
     }
   ],
-  async run: async (args, options, context) => {
+  run: async (args, options, context) => {
     const apiKey = process.env.BOCHA_API_KEY;
 
     if (!apiKey) {
