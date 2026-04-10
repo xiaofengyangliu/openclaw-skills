@@ -607,7 +607,7 @@ module.exports = {
   description: '工作计划过期检查提醒 - 检查飞书多维表格/Excel文件中过期未完成的工作计划，按规则分类统计并生成提醒消息',
   version: '1.3.0',
   author: 'Openclaw',
-  usage: '/workplan-check [file_path [check-date] | [check-date] [--sheets sheet1,sheet2] [--output output.txt]',
+  usage: '/workplan-check [file_path [check-date] | [check-date] [--sheets sheet1,sheet2] [--output [filename]]',
   options: [
     {
       name: '--sheets',
@@ -615,7 +615,7 @@ module.exports = {
     },
     {
       name: '--output',
-      description: '将检查结果保存到指定文件'
+      description: '将检查结果保存到文件，不指定文件名则自动使用 YYYY-MM-DD-gjzc.txt 格式保存到原文件目录'
     }
   ],
   run: async (args, options, context) => {
@@ -629,9 +629,6 @@ module.exports = {
     // 解析选项
     if (options && options.sheets) {
       includeSheets = options.sheets.split(',').map(s => s.trim()).filter(s => s);
-    }
-    if (options && options.output) {
-      outputFile = options.output.trim();
     }
 
     if (args.length > 0) {
@@ -665,6 +662,24 @@ module.exports = {
       // 默认检查昨天，飞书模式
       checkDate = new Date();
       checkDate.setDate(checkDate.getDate() - 1);
+    }
+
+    // 处理output选项，自动生成文件名需要等checkDate解析完成
+    if (options && options.output !== undefined) {
+      // 如果--output有值且不为空，使用用户指定名称；否则自动生成
+      if (options.output && options.output.trim()) {
+        outputFile = options.output.trim();
+      } else if (isExcelMode && args.length > 0) {
+        // 自动生成文件名: 检查日期-gjzc.txt，保存到原Excel文件所在目录
+        const dateStr = formatDate(checkDate);
+        const excelPath = path.resolve(args[0]);
+        const excelDir = path.dirname(excelPath);
+        outputFile = path.join(excelDir, `${dateStr}-gjzc.txt`);
+      } else {
+        // 飞书模式，保存到当前目录
+        const dateStr = formatDate(checkDate);
+        outputFile = `${dateStr}-gjzc.txt`;
+      }
     }
 
     if (!isExcelMode) {
