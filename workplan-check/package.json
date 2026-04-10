@@ -1,0 +1,20 @@
+{
+  "name": "workplan-check-skill",
+  "version": "1.0.0",
+  "description": "工作计划过期检查提醒 - 检查飞书多维表格/Excel文件中过期未完成的工作计划，按规则分类并生成提醒消息 / Workplan Overdue Check Reminder - Check overdue unfinished work plans in Feishu Base/Excel, classify by rules and generate reminder messages",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "xlsx": "^0.18.5"
+  },
+  "keywords": [
+    "workplan",
+    "check",
+    "reminder",
+    "feishu",
+    "excel",
+    "openclaw-skill"
+  ],
+  "author": "Openclaw",
+  "license": "MIT"
+}
