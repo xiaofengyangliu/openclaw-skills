@@ -1,0 +1,18 @@
+{
+  "name": "wecom-notify-skill",
+  "version": "1.0.0",
+  "description": "企业微信群机器人通知技能 - 支持发送文本消息、@指定用户等",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "keywords": [
+    "wecom",
+    "wechat-work",
+    "notification",
+    "webhook",
+    "openclaw-skill"
+  ],
+  "author": "xuzhisheng",
+  "license": "MIT"
+}
