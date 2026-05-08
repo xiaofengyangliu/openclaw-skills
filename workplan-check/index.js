@@ -163,37 +163,34 @@ function parseDate(dateStr) {
 
 /**
  * 从文本中提取日期并判断是否大于目标日期
+ * 使用最后出现的日期进行判断
  */
 function hasValidFutureDate(text, checkDate) {
   if (!text) return false;
   text = String(text);
 
   const checkDateOnly = new Date(checkDate.getFullYear(), checkDate.getMonth(), checkDate.getDate());
+  const allDates = [];
 
   for (const pattern of DATE_PATTERNS) {
-    // 查找所有匹配，不是只找第一个
     let match;
     const regex = new RegExp(pattern.source, 'g');
     while ((match = regex.exec(text)) !== null) {
       let year, month, day;
       if (match[1] && match[1].length === 8) {
-        // YYYYMMDD
         const str = match[1];
         year = parseInt(str.substring(0, 4), 10);
         month = parseInt(str.substring(4, 6), 10) - 1;
         day = parseInt(str.substring(6, 8), 10);
       } else if (match.length >= 4 && match[3] && match[3].length === 4) {
-        // MM-DD-YYYY (年在第三个捕获组，如 05/08/2026)
         month = parseInt(match[1], 10) - 1;
         day = parseInt(match[2], 10);
         year = parseInt(match[3], 10);
       } else if (match.length >= 4 && match[1] && match[2] && match[3] !== undefined) {
-        // YYYY-MM-DD, YYYY年MM月DD日 (年开头，如 2026-05-08, 2026年05月08日)
         year = parseInt(match[1], 10);
         month = parseInt(match[2], 10) - 1;
         day = parseInt(match[3], 10);
       } else if (match.length >= 2 && match[1] && match[2]) {
-        // MM-DD, MM月DD日 (只有月日，使用当前年份)
         year = checkDate.getFullYear();
         month = parseInt(match[1], 10) - 1;
         day = parseInt(match[2], 10);
@@ -203,15 +200,21 @@ function hasValidFutureDate(text, checkDate) {
 
       const extractedDate = new Date(year, month, day);
       if (!isNaN(extractedDate.getTime())) {
-        // 比较日期（只比较年月日）
-        const extractedDateOnly = new Date(extractedDate.getFullYear(), extractedDate.getMonth(), extractedDate.getDate());
-        if (extractedDateOnly > checkDateOnly) {
-          return true;
-        }
+        allDates.push({
+          date: extractedDate,
+          index: match.index
+        });
       }
     }
   }
-  return false;
+
+  if (allDates.length === 0) return false;
+
+  // 按在文本中出现的位置排序，取最后出现的日期
+  allDates.sort((a, b) => a.index - b.index);
+  const lastDate = allDates[allDates.length - 1].date;
+  const lastDateOnly = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
+  return lastDateOnly > checkDateOnly;
 }
 
 /**
@@ -613,7 +616,7 @@ function generateOutput(result, checkDate) {
 module.exports = {
   name: 'workplan-check',
   description: '工作计划过期检查提醒 - 检查飞书多维表格/Excel文件中过期未完成的工作计划，按规则分类统计并生成提醒消息',
-  version: '1.4.0',
+  version: '1.5.0',
   author: 'Openclaw',
   usage: '/workplan-check [file_path [check-date] | [check-date] [--sheets sheet1,sheet2] [--output [filename]]',
   options: [
