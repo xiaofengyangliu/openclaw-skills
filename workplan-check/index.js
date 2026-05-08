@@ -17,9 +17,12 @@ const WATCHING_STATUSES = {
 
 // 日期正则表达式 - 匹配各种日期格式
 const DATE_PATTERNS = [
-  /(\d{4})[.-](\d{1,2})[.-](\d{1,2})/,  // YYYY-MM-DD, YYYY.MM.DD
-  /(\d{1,2})[.-](\d{1,2})/,            // MM-DD
-  /(\d{8})/                             // YYYYMMDD
+  /(\d{4})[./-](\d{1,2})[./-](\d{1,2})/,  // YYYY-MM-DD, YYYY.MM.DD, YYYY/MM/DD
+  /(\d{1,2})[./-](\d{1,2})[./-](\d{4})/,  // MM-DD-YYYY, MM/DD/YYYY, MM.DD.YYYY
+  /(\d{4})年(\d{1,2})月(\d{1,2})日/,      // 2026年5月8日, 2026年05月08日
+  /(\d{1,2})月(\d{1,2})日/,               // 5月8日, 05月08日
+  /(\d{1,2})[./-](\d{1,2})/,              // MM-DD, MM/DD, MM.DD
+  /(\d{8})/                                // YYYYMMDD
 ];
 
 /**
@@ -173,22 +176,27 @@ function hasValidFutureDate(text, checkDate) {
     const regex = new RegExp(pattern.source, 'g');
     while ((match = regex.exec(text)) !== null) {
       let year, month, day;
-      if (match.length >= 3 && match[1] && match[2] && match[3] !== undefined) {
-        // YYYY-MM-DD
-        year = parseInt(match[1], 10);
-        month = parseInt(match[2], 10) - 1;
-        day = parseInt(match[3], 10);
-      } else if (match.length >= 2 && match[1] && match[2]) {
-        // MM-DD 使用当前年份
-        year = checkDate.getFullYear();
-        month = parseInt(match[1], 10) - 1;
-        day = parseInt(match[2], 10);
-      } else if (match[1] && match[1].length === 8) {
+      if (match[1] && match[1].length === 8) {
         // YYYYMMDD
         const str = match[1];
         year = parseInt(str.substring(0, 4), 10);
         month = parseInt(str.substring(4, 6), 10) - 1;
         day = parseInt(str.substring(6, 8), 10);
+      } else if (match.length >= 4 && match[3] && match[3].length === 4) {
+        // MM-DD-YYYY (年在第三个捕获组，如 05/08/2026)
+        month = parseInt(match[1], 10) - 1;
+        day = parseInt(match[2], 10);
+        year = parseInt(match[3], 10);
+      } else if (match.length >= 4 && match[1] && match[2] && match[3] !== undefined) {
+        // YYYY-MM-DD, YYYY年MM月DD日 (年开头，如 2026-05-08, 2026年05月08日)
+        year = parseInt(match[1], 10);
+        month = parseInt(match[2], 10) - 1;
+        day = parseInt(match[3], 10);
+      } else if (match.length >= 2 && match[1] && match[2]) {
+        // MM-DD, MM月DD日 (只有月日，使用当前年份)
+        year = checkDate.getFullYear();
+        month = parseInt(match[1], 10) - 1;
+        day = parseInt(match[2], 10);
       } else {
         continue;
       }
@@ -605,7 +613,7 @@ function generateOutput(result, checkDate) {
 module.exports = {
   name: 'workplan-check',
   description: '工作计划过期检查提醒 - 检查飞书多维表格/Excel文件中过期未完成的工作计划，按规则分类统计并生成提醒消息',
-  version: '1.3.0',
+  version: '1.4.0',
   author: 'Openclaw',
   usage: '/workplan-check [file_path [check-date] | [check-date] [--sheets sheet1,sheet2] [--output [filename]]',
   options: [
