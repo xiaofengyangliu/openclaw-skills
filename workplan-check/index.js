@@ -461,24 +461,27 @@ function processRecords(records, checkDate) {
       raw: record
     };
 
-    // 筛选: 计划完成时间 ≤ 目标日期
-    if (!task.planFinishDate || isNaN(task.planFinishDate.getTime())) {
-      // 没有计划完成时间，跳过
-      continue;
+    // 筛选逻辑
+    // 情况1: 没有计划完成时间 - 需要提醒（不跳过）
+    const hasNoPlanDate = !task.planFinishDate || isNaN(task.planFinishDate.getTime());
+
+    // 情况2: 有计划完成时间，但在检查日期之后 - 跳过
+    let isFuturePlan = false;
+    if (!hasNoPlanDate) {
+      const taskDateOnly = new Date(
+        task.planFinishDate.getFullYear(),
+        task.planFinishDate.getMonth(),
+        task.planFinishDate.getDate()
+      );
+      const checkDateOnly = new Date(
+        checkDate.getFullYear(),
+        checkDate.getMonth(),
+        checkDate.getDate()
+      );
+      isFuturePlan = taskDateOnly > checkDateOnly;
     }
 
-    const taskDateOnly = new Date(
-      task.planFinishDate.getFullYear(),
-      task.planFinishDate.getMonth(),
-      task.planFinishDate.getDate()
-    );
-    const checkDateOnly = new Date(
-      checkDate.getFullYear(),
-      checkDate.getMonth(),
-      checkDate.getDate()
-    );
-
-    if (taskDateOnly > checkDateOnly) {
+    if (isFuturePlan) {
       // 计划完成时间在检查日期之后，不需要处理
       continue;
     }

@@ -1,0 +1,13 @@
+{
+  "name": "wps-content-extractor",
+  "version": "1.0.0",
+  "description": "浏览器自动化提取WPS多页签内容 - 打开WPS分享链接，通过全选复制方式获取所有页签的文本内容",
+  "main": "index.js",
+  "scripts": {},
+  "keywords": ["wps", "kdocs", "extract", "content", "browser", "automation", "puppeteer"],
+  "author": "xuzhisheng",
+  "license": "MIT",
+  "peerDependencies": {
+    "puppeteer": ">=21.0.0"
+  }
+}

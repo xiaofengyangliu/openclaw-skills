@@ -1,0 +1,13 @@
+{
+  "name": "wps-downloader",
+  "version": "1.0.0",
+  "description": "浏览器自动化下载WPS分析文件 - 打开WPS分析链接，自动点击下载按钮下载文件",
+  "main": "index.js",
+  "scripts": {},
+  "keywords": ["wps", "download", "browser", "automation", "puppeteer"],
+  "author": "xuzhisheng",
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer": "^21.10.0"
+  }
+}
