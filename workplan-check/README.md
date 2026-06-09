@@ -1,10 +1,10 @@
 # 工作计划检查提醒技能 / Workplan Check Reminder Skill
 
-为openclaw开发的工作计划自动检查提醒技能，支持飞书多维表格和本地Excel文件两种数据源，按照预定规则检查过期未完成任务，自动分类统计并生成提醒消息。
+为openclaw开发的工作计划自动检查提醒技能，支持飞书多维表格、飞书在线表格和本地Excel文件三种数据源，按照预定规则检查过期未完成任务，自动分类统计并生成提醒消息。
 
 ## 功能特性
 
-- 支持两种数据源：飞书多维表格 / 本地Excel文件
+- 支持三种数据源：飞书多维表格 / 飞书在线表格 / 本地Excel文件
 - 同时检查多个排期sheet（支持后端/前端分类）
 - 按照规则自动判断任务完成状态
 - 智能识别需要提醒的过期任务
@@ -29,12 +29,17 @@
 在环境变量中配置：
 
 ```bash
+# 飞书多维表格和飞书在线表格都需要
 FEISHU_APP_ID=your_app_id
 FEISHU_APP_SECRET=your_app_secret
+
+# 仅飞书多维表格模式需要
 FEISHU_APP_TOKEN=your_base_app_token
 FEISHU_TABLE_IDS_BACKEND=sheet_id1,sheet_id2
 FEISHU_TABLE_IDS_FRONTEND=sheet_id1,sheet_id2
 ```
+
+飞书在线表格模式还需要确保该应用已拥有目标文档的读取权限。
 
 ## 使用方法
 
@@ -46,6 +51,22 @@ FEISHU_TABLE_IDS_FRONTEND=sheet_id1,sheet_id2
 
 # 检查指定日期过期的任务
 /workplan-check 2026-04-07
+```
+
+### 飞书在线表格模式（需要配置飞书应用凭证，并给应用文档权限）
+
+```bash
+# 检查飞书在线表格中昨天过期的任务
+/workplan-check https://ucn063xfxncx.feishu.cn/sheets/EiR4sWnQMhI8oItcndqcJMx8nYu
+
+# 检查指定日期过期的任务
+/workplan-check https://ucn063xfxncx.feishu.cn/sheets/EiR4sWnQMhI8oItcndqcJMx8nYu 2026-04-07
+
+# 指定只检查特定sheet（多个用逗号分隔，支持模糊匹配）
+/workplan-check https://ucn063xfxncx.feishu.cn/sheets/EiR4sWnQMhI8oItcndqcJMx8nYu --sheets 后端排期,前端排期
+
+# 将结果保存到文件
+/workplan-check https://ucn063xfxncx.feishu.cn/sheets/EiR4sWnQMhI8oItcndqcJMx8nYu --output result.txt
 ```
 
 ### Excel文件模式（直接使用，不需要配置飞书）

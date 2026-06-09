@@ -68,6 +68,109 @@ async function getBaseRecords(accessToken, appToken, tableId) {
   }
 }
 
+function isFeishuSheetsUrl(value) {
+  return /^https?:\/\/[^\s/]+\.(feishu|larksuite)\.cn\/sheets\/[A-Za-z0-9]+/.test(String(value || ''));
+}
+
+function parseFeishuSheetsUrl(url) {
+  const match = String(url || '').match(/^https?:\/\/[^\s/]+\.(?:feishu|larksuite)\.cn\/sheets\/([A-Za-z0-9]+)/);
+  if (!match) {
+    throw new Error('无效的飞书在线表格URL格式，请使用 https://xxx.feishu.cn/sheets/xxxx');
+  }
+  return match[1];
+}
+
+function columnNumberToName(columnNumber) {
+  let name = '';
+  while (columnNumber > 0) {
+    const remainder = (columnNumber - 1) % 26;
+    name = String.fromCharCode(65 + remainder) + name;
+    columnNumber = Math.floor((columnNumber - 1) / 26);
+  }
+  return name || 'ZZ';
+}
+
+async function getSheetsMetadata(accessToken, spreadsheetToken) {
+  try {
+    const response = await axios.get(`https://open.feishu.cn/open-apis/sheets/v3/spreadsheets/${spreadsheetToken}/sheets/query`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      },
+      timeout: 10000
+    });
+    if (response.data && response.data.code === 0) {
+      return response.data.data.sheets || [];
+    }
+    throw new Error(response.data && response.data.msg ? response.data.msg : '未知错误');
+  } catch (error) {
+    throw new Error(`获取在线表格工作表信息失败: ${error.message}`);
+  }
+}
+
+async function getSheetsRangeValues(accessToken, spreadsheetToken, range) {
+  try {
+    const response = await axios.get(`https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/values/${encodeURIComponent(range)}`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      },
+      timeout: 30000
+    });
+    if (response.data && response.data.code === 0) {
+      const valueRange = response.data.data && response.data.data.valueRange;
+      return valueRange && valueRange.values ? valueRange.values : [];
+    }
+    throw new Error(response.data && response.data.msg ? response.data.msg : '未知错误');
+  } catch (error) {
+    throw new Error(`读取在线表格数据失败: ${error.message}`);
+  }
+}
+
+function sheetsValuesToRecords(values) {
+  if (!values || values.length < 2) return [];
+  const headers = values[0].map(header => String(header || '').trim());
+  const records = [];
+
+  for (const row of values.slice(1)) {
+    const fields = {};
+    let hasValue = false;
+    headers.forEach((header, index) => {
+      if (!header) return;
+      const value = row[index] === undefined || row[index] === null ? '' : row[index];
+      if (String(value).trim()) hasValue = true;
+      fields[header] = value;
+    });
+    if (hasValue) {
+      records.push({ fields: normalizeExcelRow(fields) });
+    }
+  }
+
+  return records;
+}
+
+async function readFeishuSheets(url, accessToken, includeSheets) {
+  const spreadsheetToken = parseFeishuSheetsUrl(url);
+  const sheets = await getSheetsMetadata(accessToken, spreadsheetToken);
+  let allRecords = [];
+
+  for (const sheet of sheets) {
+    const title = sheet.title || '';
+    if (includeSheets && includeSheets.length > 0) {
+      const matched = includeSheets.some(include => title.toLowerCase().includes(include.toLowerCase()));
+      if (!matched) continue;
+    }
+
+    const sheetId = sheet.sheet_id;
+    const gridProperties = sheet.grid_properties || {};
+    const rowCount = gridProperties.row_count || 5000;
+    const columnCount = gridProperties.column_count || 702;
+    const range = `${sheetId}!A1:${columnNumberToName(columnCount)}${rowCount}`;
+    const values = await getSheetsRangeValues(accessToken, spreadsheetToken, range);
+    allRecords = allRecords.concat(sheetsValuesToRecords(values));
+  }
+
+  return allRecords;
+}
+
 /**
  * 从Excel文件读取数据
  */
@@ -618,10 +721,10 @@ function generateOutput(result, checkDate) {
 
 module.exports = {
   name: 'workplan-check',
-  description: '工作计划过期检查提醒 - 检查飞书多维表格/Excel文件中过期未完成的工作计划，按规则分类统计并生成提醒消息',
+  description: '工作计划过期检查提醒 - 检查飞书多维表格/飞书在线表格/Excel文件中过期未完成的工作计划，按规则分类统计并生成提醒消息',
   version: '1.5.0',
   author: 'Openclaw',
-  usage: '/workplan-check [file_path [check-date] | [check-date] [--sheets sheet1,sheet2] [--output [filename]]',
+  usage: '/workplan-check [file_path|feishu_sheets_url [check-date] | [check-date]] [--sheets sheet1,sheet2] [--output [filename]]',
   options: [
     {
       name: '--sheets',
@@ -633,86 +736,91 @@ module.exports = {
     }
   ],
   run: async (args, options, context) => {
-    // 判断模式检测：如果第一个参数是.xlsx或.xls文件，使用Excel模式
     let checkDate;
     let allRecords;
-    let isExcelMode = false;
+    let mode = 'bitable';
+    let source = null;
     let includeSheets = [];
     let outputFile = null;
 
-    // 解析选项
     if (options && options.sheets) {
       includeSheets = options.sheets.split(',').map(s => s.trim()).filter(s => s);
     }
 
     if (args.length > 0) {
       const firstArg = args[0];
-      // 检查是否是Excel文件
       if (firstArg.toLowerCase().endsWith('.xlsx') || firstArg.toLowerCase().endsWith('.xls')) {
-        // Excel模式: 参数是 filePath [check-date]
-        isExcelMode = true;
-        const filePath = path.resolve(firstArg);
-        // 第二个参数是检查日期
+        mode = 'excel';
+        source = path.resolve(firstArg);
+      } else if (isFeishuSheetsUrl(firstArg)) {
+        mode = 'sheets';
+        source = firstArg;
+      }
+
+      if (mode === 'excel' || mode === 'sheets') {
         if (args.length > 1 && args[1]) {
           checkDate = parseDate(args[1]);
           if (!checkDate || isNaN(checkDate.getTime())) {
             throw new Error(`无效的日期格式: ${args[1]}\n请使用 YYYY-MM-DD 格式`);
           }
         } else {
-          // 默认检查昨天
           checkDate = new Date();
           checkDate.setDate(checkDate.getDate() - 1);
         }
-        // 读取Excel
-        allRecords = readExcelFile(filePath, includeSheets);
       } else {
-        // 飞书模式，第一个参数是检查日期
         checkDate = parseDate(firstArg);
         if (!checkDate || isNaN(checkDate.getTime())) {
-          throw new Error(`无效的日期格式: ${firstArg}\n请使用 YYYY-MM-DD 格式，或者传入Excel文件路径`);
+          throw new Error(`无效的日期格式: ${firstArg}\n请使用 YYYY-MM-DD 格式，或者传入Excel文件路径/飞书在线表格URL`);
         }
       }
     } else {
-      // 默认检查昨天，飞书模式
       checkDate = new Date();
       checkDate.setDate(checkDate.getDate() - 1);
     }
 
-    // 处理output选项，自动生成文件名需要等checkDate解析完成
     if (options && options.output !== undefined) {
-      // 如果--output有值且不为空，使用用户指定名称；否则自动生成
       if (options.output && options.output.trim()) {
         outputFile = options.output.trim();
-      } else if (isExcelMode && args.length > 0) {
-        // 自动生成文件名: 检查日期-gjzc.txt，保存到原Excel文件所在目录
+      } else if (mode === 'excel' && source) {
         const dateStr = formatDate(checkDate);
-        const excelPath = path.resolve(args[0]);
-        const excelDir = path.dirname(excelPath);
+        const excelDir = path.dirname(source);
         outputFile = path.join(excelDir, `${dateStr}-gjzc.txt`);
       } else {
-        // 飞书模式，保存到当前目录
         const dateStr = formatDate(checkDate);
         outputFile = `${dateStr}-gjzc.txt`;
       }
     }
 
-    if (!isExcelMode) {
-      // 飞书模式，获取飞书配置
+    if (mode === 'excel') {
+      allRecords = readExcelFile(source, includeSheets);
+    } else if (mode === 'sheets') {
+      const appId = process.env.FEISHU_APP_ID;
+      const appSecret = process.env.FEISHU_APP_SECRET;
+
+      if (!appId || !appSecret) {
+        throw new Error('FEISHU_APP_ID 和 FEISHU_APP_SECRET 环境变量未设置\n请在环境变量中配置飞书应用凭证，并确保应用已拥有该在线表格权限。');
+      }
+
+      try {
+        const accessToken = await getFeishuAccessToken(appId, appSecret);
+        allRecords = await readFeishuSheets(source, accessToken, includeSheets);
+      } catch (error) {
+        throw new Error(`飞书在线表格检查失败: ${error.message}`);
+      }
+    } else {
       const appId = process.env.FEISHU_APP_ID;
       const appSecret = process.env.FEISHU_APP_SECRET;
       const appToken = process.env.FEISHU_APP_TOKEN;
       const tableIdsBackend = process.env.FEISHU_TABLE_IDS_BACKEND || '';
       const tableIdsFrontend = process.env.FEISHU_TABLE_IDS_FRONTEND || '';
 
-      // 检查配置
       if (!appId || !appSecret) {
-        throw new Error('FEISHU_APP_ID 和 FEISHU_APP_SECRET 环境变量未设置\n请在环境变量中配置飞书应用凭证，或传入Excel文件路径使用Excel模式。');
+        throw new Error('FEISHU_APP_ID 和 FEISHU_APP_SECRET 环境变量未设置\n请在环境变量中配置飞书应用凭证，或传入Excel文件路径/飞书在线表格URL。');
       }
       if (!appToken) {
-        throw new Error('FEISHU_APP_TOKEN 环境变量未设置\n请在环境变量中配置多维表格app_token，或传入Excel文件路径使用Excel模式。');
+        throw new Error('FEISHU_APP_TOKEN 环境变量未设置\n请在环境变量中配置多维表格app_token，或传入Excel文件路径/飞书在线表格URL。');
       }
 
-      // 收集所有tableId
       let allTableIds = [];
       if (tableIdsBackend) {
         allTableIds = allTableIds.concat(tableIdsBackend.split(',').map(s => s.trim()).filter(s => s));
@@ -721,25 +829,21 @@ module.exports = {
         allTableIds = allTableIds.concat(tableIdsFrontend.split(',').map(s => s.trim()).filter(s => s));
       }
       if (allTableIds.length === 0) {
-        throw new Error('未配置任何表格ID\n请在 FEISHU_TABLE_IDS_BACKEND 或 FEISHU_TABLE_IDS_FRONTEND 中配置要检查的表格ID，或传入Excel文件路径使用Excel模式。');
+        throw new Error('未配置任何表格ID\n请在 FEISHU_TABLE_IDS_BACKEND 或 FEISHU_TABLE_IDS_FRONTEND 中配置要检查的表格ID，或传入Excel文件路径/飞书在线表格URL。');
       }
 
       try {
-        // 获取access_token
         const accessToken = await getFeishuAccessToken(appId, appSecret);
-
-        // 获取所有表格的数据
         allRecords = [];
         for (const tableId of allTableIds) {
-        const records = await getBaseRecords(accessToken, appToken, tableId);
-        allRecords = allRecords.concat(records);
+          const records = await getBaseRecords(accessToken, appToken, tableId);
+          allRecords = allRecords.concat(records);
         }
       } catch (error) {
         throw new Error(`飞书检查失败: ${error.message}`);
       }
     }
 
-    // 处理所有记录（两种模式统一处理
     const result = processRecords(allRecords, checkDate);
 
     // 生成输出
