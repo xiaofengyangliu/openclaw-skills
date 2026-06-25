@@ -10,6 +10,7 @@
 | [wecom-notify](./wecom-notify/) | `/wecom` | 企业微信群机器人通知，支持文本、Markdown、@手机号和@所有人 | v1.0.0 | ✅ 可用 |
 | [workplan-check](./workplan-check/) | `/workplan-check` | 检查飞书多维表格或本地 Excel 中过期未完成的工作计划并生成提醒 | v1.5.0 | ✅ 可用 |
 | [lunar-calendar](./lunar-calendar/) | `/lunar-calendar` | 农历公历互转，支持闰月、生肖、干支和传统节日 | v1.0.0 | ✅ 可用 |
+| [feishu-doc](./feishu-doc/) | `/feishu-doc` | 飞书云文档企业应用读取电子表格内容或导出 Excel 文件 | v1.0.0 | ✅ 可用 |
 | [wps-downloader](./wps-downloader/) | `/wps-downloader` | 自动打开 WPS/金山文档公开分享链接并下载文件 | v1.0.0 | ✅ 可用 |
 | [wps-content-extractor](./wps-content-extractor/) | `/wps-content-extractor` | 自动提取 WPS/金山文档多页签文本内容，可保存到文件 | v1.0.0 | ✅ 可用 |
 
@@ -52,6 +53,7 @@
 /wecom 请尽快处理工单 --mobiles 13800138000
 /workplan-check ./workplan.xlsx --sheets 后端,前端
 /lunar-calendar 2024-02-10
+/feishu-doc https://example.feishu.cn/sheets/xxxx --mode excel --output ./downloads/table.xlsx
 /wps-downloader https://kdocs.cn/l/abcdefghij --output ./downloads
 /wps-content-extractor https://kdocs.cn/l/abcdefghij --output ./content.txt
 ```
@@ -83,6 +85,12 @@
 - 支持闰月和闰年 2 月 29 日
 - 支持多种中文和数字日期格式
 - 输出生肖、干支和传统节日信息
+
+### 飞书云文档读取导出 (feishu-doc)
+- 支持飞书企业自建应用模式
+- 可根据飞书电子表格链接读取单元格内容
+- 可将飞书电子表格导出为 Excel 文件
+- 支持 Markdown、JSON 和文件输出
 
 ### WPS 文件自动下载 (wps-downloader)
 - 支持 WPS 云文档和金山文档公开分享链接

@@ -31,6 +31,15 @@ This repository contains OpenClaw-compatible skills. Each skill exposes a slash 
 - Use when: The assistant needs to inspect project schedules and produce overdue-task reminders.
 - Key options: `--sheets`, `--output`
 
+### agnes-image
+
+- Command: `/agnes-image <prompt> [options]`
+- Path: `./agnes-image`
+- Purpose: Generate or edit images using Agnes-Image-2.0-Flash model. Supports text-to-image, image-to-image, and multi-image composition.
+- Requires: `AGNES_API_KEY`
+- Use when: The assistant needs to generate images from text descriptions, edit existing images, or compose multiple images together.
+- Key options: `--mode` (txt2img/img2img), `--size`, `--image`, `--output`
+
 ### lunar-calendar
 
 - Command: `/lunar-calendar <date>`
@@ -39,6 +48,15 @@ This repository contains OpenClaw-compatible skills. Each skill exposes a slash 
 - Requires: No environment variables.
 - Use when: The assistant needs Chinese lunar calendar conversion or festival/date lookup.
 - Key options: `--date`
+
+### feishu-doc
+
+- Command: `/feishu-doc <feishu-url> [options]`
+- Path: `./feishu-doc`
+- Purpose: Read Feishu spreadsheet content or export a spreadsheet link to an Excel file with enterprise app credentials.
+- Requires: `FEISHU_APP_ID`, `FEISHU_APP_SECRET`, and Feishu document/API permissions.
+- Use when: The assistant needs to fetch data from a Feishu online spreadsheet or download it as Excel.
+- Key options: `--mode`, `--range`, `--sheet`, `--format`, `--output`
 
 ### wps-downloader
 
@@ -78,3 +96,4 @@ skill-name/
 - `README.md` is the human-facing usage guide for a single skill.
 - `skills.md` is the repository-level index for OpenClaw, agents, and large language models.
 - The `name` exported from `index.js` is the canonical slash-command name. Some directories may be more descriptive than the command name, such as `wecom-notify` exporting `/wecom`.
+- The `run` function receives `(args, options, context)`. `args` is the positional argument array, `options` is a flat key-value object of flags, and `context` carries session info. Stderr output is visible to the user for progress messages.

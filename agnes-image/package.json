@@ -1,0 +1,18 @@
+{
+  "name": "agnes-image",
+  "version": "1.0.0",
+  "description": "Agnes AI 图像生成 - 文生图、图生图、多图合成。/ Agnes AI Image Generation - Text-to-image, image-to-image, multi-image composition.",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "keywords": [
+    "image-generation",
+    "text-to-image",
+    "image-to-image",
+    "agnes-ai",
+    "openclaw-skill"
+  ],
+  "author": "Sapiens AI",
+  "license": "MIT"
+}
