@@ -1,0 +1,19 @@
+{
+  "name": "agnes-video",
+  "version": "1.0.0",
+  "description": "Agnes AI 视频生成 - 文生视频、图生视频、多图视频、关键帧动画。/ Agnes AI Video Generation - Text-to-video, image-to-video, multi-image video, keyframe animation.",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "keywords": [
+    "video-generation",
+    "text-to-video",
+    "image-to-video",
+    "keyframe-animation",
+    "agnes-ai",
+    "openclaw-skill"
+  ],
+  "author": "Sapiens AI",
+  "license": "MIT"
+}

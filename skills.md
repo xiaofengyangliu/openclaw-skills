@@ -40,6 +40,15 @@ This repository contains OpenClaw-compatible skills. Each skill exposes a slash 
 - Use when: The assistant needs to generate images from text descriptions, edit existing images, or compose multiple images together.
 - Key options: `--mode` (txt2img/img2img), `--size`, `--image`, `--output`
 
+### agnes-video
+
+- Command: `/agnes-video <prompt> [options]`
+- Path: `./agnes-video`
+- Purpose: Generate videos using Agnes-Video-V2.0 model. Supports text-to-video, image-to-video, multi-image video, and keyframe animation workflows. Asynchronous task-based API with automatic polling.
+- Requires: `AGNES_API_KEY`
+- Use when: The assistant needs to generate videos from text descriptions, animate images, or create keyframe transitions.
+- Key options: `--mode` (ti2vid/img2vid/keyframes), `--size`, `--duration` (3/5/10/18), `--image`, `--fps`, `--seed`
+
 ### lunar-calendar
 
 - Command: `/lunar-calendar <date>`
